@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.HashMap;
 import java.util.Map;
 
 import config.YamlConfig;
@@ -640,7 +639,7 @@ public class MapleStatEffect {
                     break;
                 case WindArcher.WIND_WALK:
                     statups.add(new Pair<>(MapleBuffStat.WIND_WALK, Integer.valueOf(x)));
-                    break;
+                    //break;    thanks Vcoc for noticing WW not showing for other players when changing maps
                 case Rogue.DARK_SIGHT:
                 case NightWalker.DARK_SIGHT:
                     statups.add(new Pair<>(MapleBuffStat.DARKSIGHT, Integer.valueOf(x)));
@@ -959,10 +958,7 @@ public class MapleStatEffect {
         if (isDispel() && makeChanceResult()) {
             applyto.dispelDebuffs();
         } else if (isCureAllAbnormalStatus()) {
-            applyto.dispelDebuff(MapleDisease.SEDUCE);
-            applyto.dispelDebuff(MapleDisease.ZOMBIFY);
-            applyto.dispelDebuff(MapleDisease.CONFUSE);
-            applyto.dispelDebuffs();
+            applyto.purgeDebuffs();
         } else if (isComboReset()) {
             applyto.setCombo((short) 0);
         }
@@ -1105,7 +1101,7 @@ public class MapleStatEffect {
             applyto.removeAllCooldownsExcept(Buccaneer.TIME_LEAP, true);
         } else if (cp != 0 && applyto.getMonsterCarnival() != null) {
             applyto.gainCP(cp);
-        } else if (nuffSkill != 0 && applyto.getParty() != null && applyto.getMap().isCPQMap()) { // by Drago-Dragohe4rt
+        } else if (nuffSkill != 0 && applyto.getParty() != null && applyto.getMap().isCPQMap()) { // added by Drago (Dragohe4rt)
             final MCSkill skill = MapleCarnivalFactory.getInstance().getSkill(nuffSkill);
             if (skill != null) {
                 final MapleDisease dis = skill.getDisease();
@@ -1134,7 +1130,7 @@ public class MapleStatEffect {
                     }
                 }
             }
-        } else if (cureDebuffs.size() > 0) { // by Drago-Dragohe4rt
+        } else if (cureDebuffs.size() > 0) { // added by Drago (Dragohe4rt)
             for (final MapleDisease debuff : cureDebuffs) {
                 applyfrom.dispelDebuff(debuff);
             }
@@ -1343,6 +1339,8 @@ public class MapleStatEffect {
             if (isDash()) {
                 buff = MaplePacketCreator.givePirateBuff(statups, sourceid, seconds);
                 mbuff = MaplePacketCreator.giveForeignPirateBuff(applyto.getId(), sourceid, seconds, localstatups);
+            } else if (isWkCharge()) {
+                mbuff = MaplePacketCreator.giveForeignWKChargeEffect(applyto.getId(), sourceid, localstatups);
             } else if (isInfusion()) {
                 buff = MaplePacketCreator.givePirateBuff(localstatups, sourceid, seconds);
                 mbuff = MaplePacketCreator.giveForeignPirateBuff(applyto.getId(), sourceid, seconds, localstatups);
@@ -1745,6 +1743,20 @@ public class MapleStatEffect {
             default:
                 return false;
         }
+    }
+    
+    private boolean isWkCharge() {
+        if (!skill) {
+            return false;
+        }
+        
+        for (Pair<MapleBuffStat, Integer> p : statups) {
+            if (p.getLeft().equals(MapleBuffStat.WK_CHARGE)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     private boolean isDash() {
